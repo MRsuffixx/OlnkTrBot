@@ -17,6 +17,20 @@ export const configSchema = z.object({
     .string()
     .default('')
     .transform((s: string) => s.split(',').map((id: string) => id.trim()).filter(Boolean)),
+  // Rate limiting configuration
+  RL_USER_MAX: z.coerce.number().int().min(1).default(10),
+  RL_USER_WINDOW_SECONDS: z.coerce.number().int().min(1).default(10),
+  RL_GUILD_MAX: z.coerce.number().int().min(1).default(100),
+  RL_GUILD_WINDOW_SECONDS: z.coerce.number().int().min(1).default(10),
+  RL_GLOBAL_MAX: z.coerce.number().int().min(1).default(1000),
+  RL_GLOBAL_WINDOW_SECONDS: z.coerce.number().int().min(1).default(10),
+  // Anti-raid configuration
+  ANTIRAID_JOIN_THRESHOLD: z.coerce.number().int().min(1).default(10),
+  ANTIRAID_JOIN_WINDOW_SECONDS: z.coerce.number().int().min(1).default(30),
+  ANTIRAID_MSG_THRESHOLD: z.coerce.number().int().min(1).default(8),
+  ANTIRAID_MSG_WINDOW_SECONDS: z.coerce.number().int().min(1).default(5),
+  // Brand color for embeds
+  BRAND_COLOR: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#5865F2'),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

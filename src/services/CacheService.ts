@@ -284,4 +284,12 @@ export class CacheService {
       }
     }
   }
+
+  /**
+   * Get the underlying Redis client for advanced operations.
+   * Use with caution - prefer using the typed methods of this service.
+   */
+  public getRedisClient(): IRedis | null {
+    return this.redisClient;
+  }
 }

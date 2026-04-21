@@ -83,6 +83,53 @@ export class ConfigService {
     return this.config.BOT_OWNER_IDS;
   }
 
+  // Rate limiting getters
+  get rateLimitUserMax(): number {
+    return this.config.RL_USER_MAX;
+  }
+
+  get rateLimitUserWindowSeconds(): number {
+    return this.config.RL_USER_WINDOW_SECONDS;
+  }
+
+  get rateLimitGuildMax(): number {
+    return this.config.RL_GUILD_MAX;
+  }
+
+  get rateLimitGuildWindowSeconds(): number {
+    return this.config.RL_GUILD_WINDOW_SECONDS;
+  }
+
+  get rateLimitGlobalMax(): number {
+    return this.config.RL_GLOBAL_MAX;
+  }
+
+  get rateLimitGlobalWindowSeconds(): number {
+    return this.config.RL_GLOBAL_WINDOW_SECONDS;
+  }
+
+  // Anti-raid getters
+  get antiraidJoinThreshold(): number {
+    return this.config.ANTIRAID_JOIN_THRESHOLD;
+  }
+
+  get antiraidJoinWindowSeconds(): number {
+    return this.config.ANTIRAID_JOIN_WINDOW_SECONDS;
+  }
+
+  get antiraidMessageThreshold(): number {
+    return this.config.ANTIRAID_MSG_THRESHOLD;
+  }
+
+  get antiraidMessageWindowSeconds(): number {
+    return this.config.ANTIRAID_MSG_WINDOW_SECONDS;
+  }
+
+  // Brand color getter
+  get brandColor(): string {
+    return this.config.BRAND_COLOR;
+  }
+
   // Convenience boolean getters
   get isDevelopment(): boolean {
     return this.nodeEnv === 'development';
