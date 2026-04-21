@@ -130,6 +130,11 @@ export class ConfigService {
     return this.config.BRAND_COLOR;
   }
 
+  // Webhook host getter
+  get healthHost(): string {
+    return this.config.HEALTH_HOST;
+  }
+
   // Convenience boolean getters
   get isDevelopment(): boolean {
     return this.nodeEnv === 'development';

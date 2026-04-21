@@ -31,6 +31,8 @@ export const configSchema = z.object({
   ANTIRAID_MSG_WINDOW_SECONDS: z.coerce.number().int().min(1).default(5),
   // Brand color for embeds
   BRAND_COLOR: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default('#5865F2'),
+  // Webhook host configuration
+  HEALTH_HOST: z.string().url('Valid health host URL is required').default('http://localhost'),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
