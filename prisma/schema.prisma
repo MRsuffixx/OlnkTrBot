@@ -1,0 +1,255 @@
+// Prisma Schema for Discord Bot
+// Generated with Prisma 5.x
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== CORE MODELS ==========
+
+model UserProfile {
+  id               String          @id @unique @default(cuid())
+  discordId        String          @unique
+  username         String
+  discriminator    String
+  avatarHash       String?
+  preferredLocale  String?
+  xp               Int             @default(0)
+  level            Int             @default(0)
+  totalCommandsUsed Int            @default(0)
+  reputation       Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  lastSeenAt       DateTime        @default(now())
+  isBanned         Boolean         @default(false)
+  banReason        String?
+
+  badges          UserBadge[]
+  guildMemberships GuildMembership[]
+  reputationGiven  UserReputation[] @relation("reputation_given")
+  reputationReceived UserReputation[] @relation("reputation_received")
+  auditLogs       AuditLog[]
+  blacklistEntries BlacklistEntry[]
+  webhookConfigs  WebhookConfig[]
+
+  @@index([discordId])
+  @@index([xp])
+  @@index([level])
+  @@index([lastSeenAt])
+}
+
+model UserBadge {
+  id         String   @id @unique @default(cuid())
+  userId     String
+  badgeId    String
+  awardedAt  DateTime @default(now())
+  awardedBy  String?
+
+  user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@index([badgeId])
+}
+
+model Guild {
+  id                String   @id @unique
+  name              String
+  iconHash          String?
+  ownerId           String
+  preferredLocale   String?  @default("en")
+  maintenanceMessage String?
+  joinedAt          DateTime @default(now())
+  leftAt            DateTime?
+  settings          Json?    // Flexible storage for guild-specific feature settings
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  memberships       GuildMembership[]
+  onboardingConfig  GuildOnboardingConfig?
+  auditLogs         AuditLog[]
+  webhookConfigs    WebhookConfig[]
+  reputations       UserReputation[]
+
+  @@index([ownerId])
+  @@index([joinedAt])
+}
+
+model GuildMembership {
+  id            String   @id @unique @default(cuid())
+  userId        String
+  guildId       String
+  guildXp       Int      @default(0)
+  guildLevel    Int      @default(0)
+  guildJoinedAt DateTime @default(now())
+  messageCount  Int      @default(0)
+  commandCount  Int      @default(0)
+  lastActiveAt  DateTime @default(now())
+
+  user          UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guild         Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guildId])
+  @@index([userId])
+  @@index([guildId])
+  @@index([guildXp])
+  @@index([guildLevel])
+}
+
+// ========== ONBOARDING MODULE ==========
+
+model GuildOnboardingConfig {
+  id                    String   @id @unique @default(cuid())
+  guildId               String   @unique
+  enabled               Boolean  @default(false)
+  welcomeChannelId      String?
+  rulesChannelId        String?
+  verifiedRoleId        String?
+  quarantineRoleId      String?
+  steps                 Json?    // JSON array defining the onboarding steps
+  welcomeMessageKey     String?
+  requireRuleAcceptance Boolean  @default(false)
+  requireRoleSelection  Boolean  @default(false)
+  selfRoles             Json?    // JSON array of role groups
+
+  guild                 Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId])
+}
+
+// ========== SECURITY MODULE ==========
+
+enum BlacklistType {
+  USER
+  GUILD
+}
+
+model BlacklistEntry {
+  id          String       @id @unique @default(cuid())
+  type        BlacklistType
+  targetId    String       // Discord user ID or guild ID
+  reason      String
+  moderatorId String
+  expiresAt   DateTime?
+  createdAt   DateTime     @default(now())
+  active      Boolean      @default(true)
+
+  moderator   UserProfile? @relation(fields: [moderatorId], references: [discordId], onDelete: SetNull)
+
+  @@index([type])
+  @@index([targetId])
+  @@index([moderatorId])
+  @@index([expiresAt])
+  @@index([active])
+  @@unique([type, targetId])
+}
+
+// ========== AUDIT LOG ==========
+
+enum AuditAction {
+  COMMAND_EXECUTED
+  COMMAND_FAILED
+  USER_BLACKLISTED
+  USER_UNBLACKLISTED
+  GUILD_BLACKLISTED
+  RATE_LIMIT_HIT
+  ANTIRAID_TRIGGERED
+  ANTIRAID_ACTION_TAKEN
+  MEMBER_WARNED
+  MEMBER_KICKED
+  MEMBER_BANNED
+  WEBHOOK_RECEIVED
+  WEBHOOK_REJECTED
+  MAINTENANCE_ENABLED
+  MAINTENANCE_DISABLED
+  ONBOARDING_COMPLETED
+  PROFILE_UPDATED
+}
+
+enum TargetType {
+  USER
+  CHANNEL
+  ROLE
+  GUILD
+}
+
+model AuditLog {
+  id         String     @id @unique @default(cuid())
+  guildId    String?
+  userId     String?
+  action     AuditAction
+  targetId   String?
+  targetType TargetType?
+  details    Json?      // Action-specific data
+  ipHash     String?    // Hashed identifier for webhook sources
+  createdAt  DateTime   @default(now())
+
+  guild      Guild?     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user       UserProfile? @relation(fields: [userId], references: [discordId], onDelete: SetNull)
+
+  @@index([guildId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([guildId, createdAt])
+}
+
+// ========== WEBHOOK MODULE ==========
+
+enum WebhookSourceType {
+  GENERIC
+  GITHUB
+  CUSTOM
+}
+
+model WebhookConfig {
+  id            String           @id @unique @default(cuid())
+  guildId       String
+  channelId     String
+  token         String           @unique // Hashed token
+  name          String
+  sourceType    WebhookSourceType @default(GENERIC)
+  signingSecret String?
+  enabled       Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  createdBy     String
+  lastUsedAt    DateTime?
+  requestCount  Int              @default(0)
+
+  guild         Guild            @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  creator       UserProfile?     @relation(fields: [createdBy], references: [discordId], onDelete: SetNull)
+
+  @@index([guildId])
+  @@index([token])
+  @@index([createdBy])
+  @@index([lastUsedAt])
+  @@index([enabled])
+}
+
+// ========== REPUTATION SYSTEM ==========
+
+model UserReputation {
+  id        String   @id @unique @default(cuid())
+  fromUserId  String
+  toUserId    String
+  guildId     String
+  amount      Int      // Typically +1 or -1
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  fromUser    UserProfile @relation(name: "reputation_given", fields: [fromUserId], references: [discordId], onDelete: Cascade)
+  toUser      UserProfile @relation(name: "reputation_received", fields: [toUserId], references: [discordId], onDelete: Cascade)
+  guild       Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId, guildId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([guildId])
+  @@index([createdAt])
+}
